@@ -64,7 +64,6 @@ class PartialParse(object):
         elif transition == 'RA':
             dependent = self.stack.pop(-1)
             head = self.stack[-1]
-            print(f"RA: {head}, {dependent}")
             self.dependencies.append((head, dependent))
 
         ### END YOUR CODE
@@ -122,7 +121,7 @@ def minibatch_parse(sentences, model, batch_size):
         ]
     unfinished_parses = partial_parses
     dependencies = [[] for _ in sentences]
-    
+
     while unfinished_parses:
         batch = unfinished_parses[:batch_size]
         idxs, mb = list(zip(*batch))
@@ -132,7 +131,10 @@ def minibatch_parse(sentences, model, batch_size):
             deps = pp.parse([transitions[i]])
             if not pp.buffer and (len(pp.stack) == 1):
                 dependencies[idx] = deps    
-                unfinished_parses = unfinished_parses[:i] + unfinished_parses[i+1:]
+                unfinished_parses = (
+                    unfinished_parses[:i] + 
+                    unfinished_parses[i+1:]
+                    )
             
     ### END YOUR CODE
 
