@@ -79,11 +79,11 @@ class NMT(nn.Module):
 
         self.encoder = nn.LSTM(embed_size, self.hidden_size, 1, bidirectional=True)
         self.decoder = nn.LSTMCell(embed_size + self.hidden_size, self.hidden_size)
-        self.h_projection = nn.Linear(self.hidden_size, 2 * self.hidden_size, bias=False)
-        self.c_projection = nn.Linear(self.hidden_size, 2 * self.hidden_size, bias=False)
-        self.att_projection = nn.Linear(self.hidden_size, 2 * self.hidden_size, bias=False)
-        self.combined_output_projection = nn.Linear(self.hidden_size, 3 * self.hidden_size, bias=False)
-        self.target_vocab_projection = nn.Linear(len(vocab.tgt), self.hidden_size, bias=False)
+        self.h_projection = nn.Linear(2 * self.hidden_size, self.hidden_size, bias=False)
+        self.c_projection = nn.Linear(2 * self.hidden_size, self.hidden_size, bias=False)
+        self.att_projection = nn.Linear(2 * self.hidden_size, self.hidden_size, bias=False)
+        self.combined_output_projection = nn.Linear(3 * self.hidden_size, self.hidden_size, bias=False)
+        self.target_vocab_projection = nn.Linear(self.hidden_size, len(vocab.tgt), bias=False)
         self.dropout = nn.Dropout(self.dropout_rate)
 
         ### END YOUR CODE
@@ -177,10 +177,15 @@ class NMT(nn.Module):
 
         
         X = self.model_embeddings.source(source_padded)
-        enc_hiddens = self.encoder(pack_padded_sequence(X)).transpose(0,1)
-        pad_packed_sequence(enc_hiddens)
+        raw_enc_hiddens, (last_hidden, last_cell) = self.encoder(pack_padded_sequence(X, source_lengths))
+        enc_hiddens, _ = pad_packed_sequence(raw_enc_hiddens, batch_first=True)
+        
+        cat_hidden = torch.cat([last_hidden[0,:], last_hidden[1,:]], dim=1)
+        init_decoder_hidden = self.h_projection(cat_hidden)
 
-
+        cat_cell = torch.cat([last_cell[0,:], last_cell[1,:]], dim=1)
+        init_decoder_cell = self.c_projection(cat_cell)
+        dec_init_state = (init_decoder_hidden, init_decoder_cell)
         ### END YOUR CODE
 
         return enc_hiddens, dec_init_state
@@ -250,10 +255,20 @@ class NMT(nn.Module):
         ###     Tensor Stacking:
         ###         https://pytorch.org/docs/stable/torch.html#torch.stack
 
+        enc_hiddens_proj = self.att_projection(enc_hiddens)
 
+        Y = self.model_embeddings.target(target_padded)
+        for Y_t in torch.split(Y, 1):
+            Y_t.squeeze_(0)
+            Ybar_t = torch.cat([Y_t, o_prev], dim=-1)
+            dec_state, o_t, _ = self.step(
+                Ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks
+                )
 
-
-
+            combined_outputs.append(o_t)
+            o_prev = o_t
+        
+        combined_outputs = torch.stack(combined_outputs)
 
         ### END YOUR CODE
 
