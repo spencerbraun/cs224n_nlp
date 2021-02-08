@@ -2,7 +2,6 @@ numpy
 scipy
 tqdm
 docopt
-pytorch
 nltk
 torchvision
 sentencepiece
