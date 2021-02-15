@@ -93,7 +93,7 @@ if args.function == 'pretrain':
     
     modelTrain = trainer.Trainer(model, pretrain_dataset, None, tconf)
     modelTrain.train()
-    torch.save(modelTrain.state_dict(), args.writing_params_path)
+    torch.save(model.state_dict(), args.writing_params_path)
 
 elif args.function == 'finetune':
     assert args.writing_params_path is not None
@@ -154,7 +154,7 @@ elif args.function == 'finetune':
     
     modelTrain = trainer.Trainer(model, finetune_name, None, tconf)
     modelTrain.train()
-    torch.save(modelTrain.state_dict(), args.writing_params_path)
+    torch.save(model.state_dict(), args.writing_params_path)
     
 elif args.function == 'evaluate':
     assert args.outputs_path is not None
