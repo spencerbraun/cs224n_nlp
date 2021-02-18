@@ -173,9 +173,7 @@ class CharCorruptionDataset(Dataset):
     
         maskMean = 0.25*truncLen
         maskLen = random.randint(int(0.8*maskMean), int(1.2*maskMean))
-        # maskLen = int(random.gauss(0.25*truncLen, 1))
         start = random.randint(1, (truncLen - maskLen - 1))
-        # start = int((truncLen - maskLen)/2)
 
         prefix = truncDoc[:start]
         masked_content = truncDoc[start:(start+maskLen)]
